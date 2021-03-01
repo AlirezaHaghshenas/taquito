@@ -7,7 +7,7 @@ on: [push, pull_request]
   #     - completed
 jobs:
   deply-edge-package:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest # change to self-hosted before PR
     # if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
     strategy:
       matrix:
