@@ -7,7 +7,6 @@ on: [push, pull_request]
   #     - completed
 jobs:
   deply-edge-package:
-    needs: [lint-and-test, integration-tests-delphinet, integration-tests-edonet]
     runs-on: self-hosted
     if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
     strategy:
