@@ -1,0 +1,58 @@
+name: Deploy Edge
+
+on: [push, pull_request]
+  # workflow_run:
+  #   workflows: ["Node.js CI"]
+  #   types:
+  #     - completed
+jobs:
+  deply-edge-package:
+    needs: [lint-and-test, integration-tests-delphinet, integration-tests-edonet]
+    runs-on: self-hosted
+    if: ${{ github.event_name == 'pull_request' || github.ref == 'refs/heads/master' }}
+    strategy:
+      matrix:
+        node: [12.x]
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.EDGE_NPM_TOKEN }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: ${{ matrix.node }}
+    - uses: actions/cache@v1
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-node-
+    - run: npm ci
+    - run: npm run lerna -- bootstrap
+    - run: find packages/ -mindepth 1 -maxdepth 2 -name README.md  | xargs sed -i '1s/^/# WARNING This build is produced from a feature branch and could contain unreviewed changes from the public. Use with caution, do not use in production\n\n/'
+    - name: Compute Short SHA
+      run: echo "SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+    - name: Compute package.json version
+      run: echo "PACKAGE_VERSION=`node -p "require('./packages/taquito/package.json').version"`" >> $GITHUB_ENV
+    - name: Compute Branch name
+      run: echo "BRANCH_NAME=`echo $GITHUB_REF | cut -d'/' -f 3`" >> $GITHUB_ENV
+    - name: Compute Target Version
+      run: echo "TARGET_VERSION=${PACKAGE_VERSION}-${SHORT_SHA}--${BRANCH_NAME}"
+    - run: lerna version "${TARGET_VERSION}" --no-push --no-git-tag-version
+    - run: npm run build
+    - run: cd packages/taquito && npm run build:release && cd ../..
+    - run: lerna publish --dist-tag edge from-package
+    - run: npm dist-tag add @taquito/beacon-wallet@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/http-utils@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/local-forging@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/ledger-signer@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/michel-codec@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/michelson-encoder@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/remote-signer@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/rpc@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/signer@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/taquito@${TARGET_VERSION} edge   
+    - run: npm dist-tag add @taquito/tezbridge-signer@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/tezbridge-wallet@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/utils@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/tzip16@${TARGET_VERSION} edge
+    - run: npm dist-tag add @taquito/tzip12@${TARGET_VERSION} edge
