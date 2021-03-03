@@ -33,7 +33,7 @@ jobs:
     - name: Compute Branch name
       run: echo "BRANCH_NAME=`echo $GITHUB_REF | cut -d'/' -f 3`" >> $GITHUB_ENV
     - name: Compute Target Version
-      run: echo "TARGET_VERSION=${PACKAGE_VERSION}-${SHORT_SHA}--${BRANCH_NAME}"
+      run: echo "TARGET_VERSION=${PACKAGE_VERSION}-${SHORT_SHA}--${BRANCH_NAME}" >> $GITHUB_ENV
     - run: find packages/ -mindepth 1 -maxdepth 2 -name package.json | xargs sed -i -E "s/@taquito/@$NPM_ORG/"
     - run: npm i -g lerna
     - run: npm i
